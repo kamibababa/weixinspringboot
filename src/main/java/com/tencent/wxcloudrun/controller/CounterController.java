@@ -42,7 +42,7 @@ public class CounterController {
     Optional<Counter> counter = counterService.getCounter(1);
     Integer count = 0;
     if (counter.isPresent()) {
-      count = counter.get().getCount();
+      count = counter.get().getCount()+2;
     }
 
     return ApiResponse.ok(count);
