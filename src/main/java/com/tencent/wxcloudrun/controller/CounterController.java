@@ -12,6 +12,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.List;
@@ -25,7 +30,49 @@ public class CounterController {
 
   final CounterService counterService;
   final Logger logger;
+  public static String fetchTriviaQuestions(String apiUrl) throws IOException {
+    StringBuilder response = new StringBuilder();
+    HttpURLConnection connection = null;
+    BufferedReader reader = null;
 
+    try {
+      // 创建URL对象并打开连接
+      URL url = new URL(apiUrl);
+      connection = (HttpURLConnection) url.openConnection();
+
+      // 设置请求方法
+      connection.setRequestMethod("GET");
+
+      // 设置请求头
+      connection.setRequestProperty("Accept", "application/json");
+
+      // 获取响应码
+      int responseCode = connection.getResponseCode();
+
+      if (responseCode == HttpURLConnection.HTTP_OK) {
+        // 读取响应内容
+        reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+        String line;
+
+        while ((line = reader.readLine()) != null) {
+          response.append(line);
+        }
+      } else {
+        throw new IOException("HTTP error code: " + responseCode);
+      }
+
+    } finally {
+      // 关闭资源
+      if (reader != null) {
+        reader.close();
+      }
+      if (connection != null) {
+        connection.disconnect();
+      }
+    }
+
+    return response.toString();
+  }
   public CounterController(@Autowired CounterService counterService) {
     this.counterService = counterService;
     this.logger = LoggerFactory.getLogger(CounterController.class);
@@ -38,14 +85,22 @@ public class CounterController {
    */
   @GetMapping(value = "/api/count")
   ApiResponse get() {
-    logger.info("/api/count get request");
-    Optional<Counter> counter = counterService.getCounter(1);
-    Integer count = 0;
-    if (counter.isPresent()) {
-      count = counter.get().getCount()+3;
+//    logger.info("/api/count get request");
+//    Optional<Counter> counter = counterService.getCounter(1);
+//    Integer count = 0;
+//    if (counter.isPresent()) {
+//      count = counter.get().getCount()+3;
+//    }
+    String apiUrl = "https://opentdb.com/api.php?amount=10&category=18&difficulty=easy&type=multiple";
+    String jsonResponse = "";
+    try {
+      jsonResponse = fetchTriviaQuestions(apiUrl);
+      System.out.println("API Response:");
+      System.out.println(jsonResponse);
+    } catch (IOException e) {
+      System.err.println("Error fetching trivia questions: " + e.getMessage());
     }
-
-    return ApiResponse.ok(count);
+    return ApiResponse.ok(jsonResponse);
   }
 
 
